@@ -8,6 +8,12 @@ import chrome from '@polkadot/extension-inject/chrome';
 // connect to the extension
 const port = chrome.runtime.connect({ name: PORT_CONTENT });
 
+chrome.runtime.onMessage.addListener(
+  function (request) {
+    window.postMessage({ ...request, origin: 'polkadot-js' }, '*');
+  }
+);
+
 // send any messages from the extension back to the page
 port.onMessage.addListener((data): void => {
   window.postMessage({ ...data, origin: 'content' }, '*');
@@ -20,6 +26,7 @@ window.addEventListener('message', ({ data, source }): void => {
     return;
   }
 
+  data._url = window.location.href;
   port.postMessage(data);
 });
 

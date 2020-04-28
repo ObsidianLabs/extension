@@ -12,6 +12,33 @@ import keyring from '@polkadot/ui-keyring';
 import { assert } from '@polkadot/util';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 
+let mainTab = 0;
+
+chrome.browserAction = {
+  ...chrome.browserAction,
+  setBadgeBackgroundColor: () => {},
+  setBadgeText: () => {}
+};
+
+const chromeWindowsCreate = (opts: any, callback?: ((window?: any) => void)): void => {
+  chrome.tabs.sendMessage(mainTab, { opts, type: 'chrome.windows.create' });
+
+  if (callback) {
+    // eslint-disable-next-line standard/no-callback-literal
+    callback({ id: 0 });
+  }
+};
+
+const chromeWindowsRemove = (): void => {
+  chrome.tabs.sendMessage(mainTab, { type: 'chrome.windows.remove' });
+};
+
+chrome.windows = {
+  ...chrome.windows,
+  create: chromeWindowsCreate,
+  remove: chromeWindowsRemove
+};
+
 // setup the notification (same a FF default background, white text)
 chrome.browserAction.setBadgeBackgroundColor({ color: '#d90000' });
 
@@ -21,7 +48,19 @@ chrome.runtime.onConnect.addListener((port): void => {
   assert([PORT_CONTENT, PORT_EXTENSION].includes(port.name), `Unknown connection from ${port.name}`);
 
   // message and disconnect handlers
-  port.onMessage.addListener((data): void => handlers(data, port));
+  port.onMessage.addListener((data): void => {
+    if (data.message === 'set-main-tab') {
+      mainTab = port.sender?.tab?.id || 0;
+
+      return;
+    }
+
+    if (port.sender) {
+      port.sender.url = data._url;
+    }
+
+    handlers(data, port);
+  });
   port.onDisconnect.addListener((): void => console.log(`Disconnected from ${port.name}`));
 });
 
