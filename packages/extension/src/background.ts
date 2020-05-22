@@ -51,12 +51,15 @@ chrome.runtime.onConnect.addListener((port): void => {
   port.onMessage.addListener((data): void => {
     if (data.message === 'set-main-tab') {
       mainTab = port.sender?.tab?.id || 0;
-
       return;
     }
 
     if (port.sender) {
-      port.sender.url = data._url;
+      if (mainTab === port.sender?.tab?.id) {
+        port.sender.url = 'Substrate IDE'
+      } else {
+        port.sender.url = data._url;
+      }
     }
 
     handlers(data, port);
